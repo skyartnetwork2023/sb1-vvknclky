@@ -10,7 +10,27 @@ interface SidebarProps {
 export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { user, signOut } = useAuth();
+  
+  // Restore collapsed state from localStorage on mount
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('sidebar-collapsed');
+        if (saved !== null) setCollapsed(saved === 'true');
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
+  // Persist collapsed state when it changes
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') localStorage.setItem('sidebar-collapsed', String(collapsed));
+    } catch (e) {
+      // ignore
+    }
+  }, [collapsed]);
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'voucher', label: 'Voucher', icon: Ticket },
@@ -23,13 +43,13 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   ];
 
   return (
-    <div className={`${collapsed ? 'w-16' : 'w-56'} bg-slate-900 text-white flex flex-col h-screen fixed left-0 top-0 shadow-xl transition-all duration-200`}>
-      <div className="relative flex items-center justify-between p-3 border-b border-slate-800">
+    <div className={`${collapsed ? 'w-16' : 'w-48'} bg-slate-900 text-white flex flex-col h-screen fixed left-0 top-0 shadow-xl transition-all duration-200`}>
+      <div className="relative flex items-center justify-between p-2 border-b border-slate-800">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 flex items-center justify-center rounded-md bg-slate-800">
             <Menu className="w-5 h-5 text-slate-300" />
           </div>
-          {!collapsed && <h1 className="text-lg font-semibold text-slate-100">FinDash</h1>}
+          {!collapsed && <h1 className="text-base font-semibold text-slate-100">FinDash</h1>}
         </div>
 
         <button
@@ -41,45 +61,26 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-3 px-1 space-y-1">
+      <nav className="flex-1 overflow-y-auto py-2 px-1 space-y-1">
         {menuItems.map(item => {
           const Icon = item.icon;
           const isActive = currentPage === item.id;
-
-          // Restore collapsed state from localStorage on mount
-          useEffect(() => {
-            try {
-              if (typeof window !== 'undefined') {
-                const saved = localStorage.getItem('sidebar-collapsed');
-                if (saved !== null) setCollapsed(saved === 'true');
-              }
-            } catch (e) {
-              // ignore
-            }
-          }, []);
-
-          // Persist collapsed state when it changes
-          useEffect(() => {
-            try {
-              if (typeof window !== 'undefined') localStorage.setItem('sidebar-collapsed', String(collapsed));
-            } catch (e) {
-              // ignore
-            }
-          }, [collapsed]);
           return (
             <button
               key={item.id}
+              type="button"
+              aria-label={item.label}
               onClick={() => onNavigate(item.id)}
-              className={`relative w-full flex items-center ${collapsed ? 'group justify-center' : 'gap-3 pl-3 pr-4'} py-3 rounded-r-lg transition-colors text-left overflow-hidden ${
+              className={`relative w-full flex items-center ${collapsed ? 'group justify-center' : 'gap-2 pl-2 pr-3'} py-2 rounded-r-lg transition-colors text-left overflow-hidden ${
                 isActive
-                  ? 'bg-slate-800 text-cyan-400'
+                  ? 'bg-slate-800 text-cyan-300'
                   : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
               }`}
             >
-              {isActive && <span className={`absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 rounded-r-full bg-cyan-400`} />}
+              {isActive && <span className={`absolute left-0 top-1/2 -translate-y-1/2 h-10 w-[4px] rounded-r-full bg-cyan-300`} />}
 
               <div className="flex items-center z-10">
-                <Icon className={`w-5 h-5 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
+                <Icon className={`w-5 h-5 ${isActive ? 'text-cyan-300' : 'text-slate-400'}`} />
                 {!collapsed && <span className="font-medium text-sm ml-3 truncate">{item.label}</span>}
 
                 {collapsed && (
@@ -126,6 +127,41 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
             </button>
           </div>
         )}
+          <div className={`flex flex-col ${collapsed ? 'items-center' : 'items-start'} px-2 py-2 rounded-md gap-2`}>
+            <div className="flex items-center gap-3 w-full">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex items-center justify-center flex-shrink-0">
+                <User className="w-5 h-5 text-slate-900" />
+              </div>
+              {!collapsed && (
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-slate-100 truncate">{user?.email ? user.email.split('@')[0] : 'Account'}</p>
+                  <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+                </div>
+              )}
+            </div>
+
+            {!collapsed ? (
+              <button
+                type="button"
+                aria-label="Logout"
+                onClick={() => signOut()}
+                className="mt-1 inline-flex items-center gap-2 px-3 py-1 bg-pink-500 hover:bg-pink-600 text-white rounded-md transition-colors font-medium text-sm"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            ) : (
+              <button
+                type="button"
+                aria-label="Logout"
+                onClick={() => signOut()}
+                className="mt-1 w-9 h-9 flex items-center justify-center bg-pink-500 hover:bg-pink-600 text-white rounded-md transition-colors"
+                title="Logout"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
+          </div>
       </div>
     </div>
   );
